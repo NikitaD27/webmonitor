@@ -1,47 +1,75 @@
 # Prompts Used
 
-## Session: Project Setup
-
-**Prompt:** "Build a full-stack web monitor app. Backend: FastAPI with SQLite. Frontend: React + Vite. Features: add URLs, click Check Now to fetch and diff, AI summary of changes, history of last 5 checks, filter by project/search."
-
-**Response:** Generated initial project structure, FastAPI routes, and React component stubs.
+All prompts were used with Claude (claude.ai) during development.
 
 ---
 
-## Session: Diff Logic
+## Session 1: Project Selection & Planning
 
-**Prompt:** "How do I use Python's difflib to generate a unified diff between two strings and return it as HTML with colored spans for additions, removals, and context?"
+**Prompt:** "which would be better to build and easy and learning and can be shared today eod" (choosing between Option A knowledge graph and Option B web monitor)
 
-**Response:** Provided `difflib.unified_diff` usage with HTML span wrapping. I adjusted the slice index (`diff[2:]`) to skip the file header lines.
+**Claude Response:** Recommended Option B (Web Monitor) — simpler data model, fewer moving parts, easier to host, better for learning. Suggested FastAPI + SQLite + React + Vite stack.
 
----
-
-## Session: OpenAI Integration
-
-**Prompt:** "Write a FastAPI async function that takes a URL, old content, new content, and a diff, then calls OpenAI GPT-4o-mini to summarize the changes in 2-4 bullet points with snippet citations."
-
-**Response:** Generated the `summarize_changes` function. I reviewed the prompt sent to GPT and tightened the system message.
+**What I took from it:** Went with Option B and the suggested stack.
 
 ---
 
-## Session: Frontend Design
+## Session 2: Full Project Scaffold
 
-**Prompt:** "Create a dark-theme CSS design system for a dev tool. Use DM Mono and Syne fonts. Deep dark navy background, blue accent (#5b8fff), violet secondary. Card-based layout with diff view, status dots, and animated spinner."
+**Prompt:** "yes" (asked Claude to scaffold the full project)
 
-**Response:** Generated full CSS file. I reviewed color contrast ratios and adjusted muted text color for readability.
+**Claude Response:** Generated complete project — `backend/main.py` (FastAPI with all routes), React components (Home, Status, LinkCard, AddLinkModal, DiffModal), CSS design system, `docker-compose.yml`, `render.yaml`, `vercel.json`, and all doc files.
 
----
-
-## Session: Docker Setup
-
-**Prompt:** "Write a docker-compose.yml for a FastAPI backend (port 8000) and React Vite frontend (port 5173), with the backend serving SQLite and reading OPENAI_API_KEY from environment."
-
-**Response:** Generated docker-compose.yml and Dockerfiles. I adjusted volume mounts for SQLite persistence.
+**What I reviewed:** Read through all routes, verified the diff logic using `difflib.unified_diff`, checked SQLite snapshot pruning query, confirmed CORS settings.
 
 ---
 
-## Session: Deployment Config
+## Session 3: Switching from OpenAI to Groq
 
-**Prompt:** "What files do I need to deploy a FastAPI app to Render and a React Vite app to Vercel? Include render.yaml and vercel.json."
+**Prompt:** "give me updated code as we are using claude open api key" → then switched to Groq after Anthropic API had no credits
 
-**Response:** Generated both config files. I verified the build commands and start commands match the project structure.
+**Claude Response:** Generated updated `main.py` replacing `openai` import with `anthropic` SDK, then again with `groq` SDK using `llama-3.1-8b-instant` model.
+
+**What I verified:** Confirmed `resp.choices[0].message.content` is the correct response format for Groq SDK (same as OpenAI). Tested with a real API call.
+
+---
+
+## Session 4: Fixing Diff Display
+
+**Prompt:** Shared screenshot showing raw HTML tags appearing in the diff view instead of clean text (e.g. `<b>NSE India Home</b>` showing as literal text with broken spans)
+
+**Claude Response:** Identified root cause — page HTML tags were not being escaped before wrapping in diff `<span>` tags. Fixed by adding `html.escape()` on each diff line in `build_diff_html()`. Also added `html.unescape()` and script/style stripping in `fetch_url_content()` so stored content is clean text.
+
+**What I verified:** Tested with NSE India URL — confirmed diff now shows readable text lines, not raw HTML. Checked `dangerouslySetInnerHTML` is safe since we only inject our own escaped spans.
+
+---
+
+## Session 5: Debugging & Running Locally
+
+**Prompts:** Various error messages shared during local setup:
+- `ERROR: Could not import module "main"` → Claude identified wrong directory, fix was `cd backend` first
+- `LLM error: 401 invalid x-api-key` → Claude walked through `.env` format check and key validation
+- `LLM error: 400 credit balance too low` → Claude explained API credits vs chat subscription difference, recommended Groq as free alternative
+- `ModuleNotFoundError: No module named 'groq'` → Fix was `pip install groq` with venv activated
+
+**What I learned:** Always activate venv before installing packages. API credits and chat subscriptions are separate billing.
+
+---
+
+## Session 6: Deployment Setup
+
+**Prompt:** "now we have docker and compose and yaml file how should i host it... which files should be added in gitignore give me all and steps to push to repo"
+
+**Claude Response:** Generated final `.gitignore`, `backend/.env.example`, `frontend/.env.example`, and step-by-step guide for GitHub push → Render backend deploy → Vercel frontend deploy.
+
+**What I verified:** Ran `git status` to confirm no `.env` files were being tracked before pushing. Checked Render disk mount path matches `DB_PATH` env var.
+
+---
+
+## Session 7: Documentation Cleanup
+
+**Prompt:** Shared existing `README.md` and `AI_NOTES.md` for review — both still referenced OpenAI/GPT-4o-mini after switching to Groq.
+
+**Claude Response:** Updated both files to reflect actual stack (Groq + Llama 3.1), removed inaccurate entries, made "what I checked" section honest and specific.
+
+**What I did:** Read through both files after update, removed any entries that didn't reflect what was actually built or tested.
